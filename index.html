@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#4f46e5" />
+    <title>PainPilot · 痛点自动化（离线演示）</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f6f7f9;
+        --ink: #0f172a;
+        --text: #334155;
+        --muted: #64748b;
+        --faint: #94a3b8;
+        --line: #e2e8f0;
+        --line-soft: #f1f5f9;
+        --indigo: #4f46e5;
+        --indigo-soft: #eef2ff;
+        --emerald: #059669;
+        --amber: #d97706;
+        --slate: #64748b;
+        --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
+        --shadow-lift: 0 12px 32px -12px rgb(15 23 42 / 0.18), 0 2px 6px rgb(15 23 42 / 0.05);
+      }
+      * { box-sizing: border-box; }
+      html { background: var(--canvas); }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+      }
+      button, input, textarea { font: inherit; color: inherit; }
+      button { cursor: pointer; background: none; border: 0; padding: 0; }
+      h1, h2, h3, p, ul, ol, dl, dd { margin: 0; }
+      ul, ol { padding: 0; list-style: none; }
+      svg { display: block; flex-shrink: 0; }
+      .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+      .wrap { width: 100%; max-width: 72rem; margin: 0 auto; padding: 0 1.25rem; }
+
+      /* 顶栏 */
+      header.top {
+        position: sticky; top: 0; z-index: 20;
+        background: rgb(255 255 255 / 0.86);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgb(226 232 240 / 0.8);
+      }
+      .top-row { height: 4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+      .brand { display: flex; align-items: center; gap: 0.6rem; }
+      .logo { width: 2rem; height: 2rem; border-radius: 0.5rem; background: var(--indigo); color: white; display: grid; place-items: center; box-shadow: var(--shadow-card); }
+      .brand b { display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.2; }
+      .brand small { display: block; font-size: 11px; color: var(--muted); line-height: 1.2; }
+      .nav-desktop { display: flex; gap: 0.25rem; }
+      .nav-link { height: 2.25rem; padding: 0 0.75rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: var(--muted); }
+      .nav-link:hover { color: var(--ink); }
+      .nav-link[aria-current="page"] { background: #f1f5f9; color: var(--ink); }
+
+      /* 演示进度条 */
+      .demo-bar { border-bottom: 1px solid var(--line); background: white; }
+      .demo-row { height: 2.75rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.8125rem; color: var(--muted); }
+      .demo-row .tag { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: var(--indigo-soft); color: var(--indigo); font-weight: 500; font-size: 0.75rem; }
+      .progress { flex: 1; height: 4px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+      .progress i { display: block; height: 100%; width: 0; background: var(--indigo); transition: width 0.3s ease; }
+      .demo-row .step-text { min-width: 9rem; text-align: right; }
+
+      /* 按钮 */
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.5rem; padding: 0 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: background 0.15s, border-color 0.15s; white-space: nowrap; }
+      .btn-lg { height: 2.75rem; padding: 0 1.25rem; }
+      .btn-sm { height: 2.25rem; padding: 0 0.85rem; }
+      .btn-primary { background: var(--indigo); color: white; box-shadow: var(--shadow-card); }
+      .btn-primary:hover { background: #6366f1; }
+      .btn-secondary { background: white; color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow-card); }
+      .btn-secondary:hover { background: #f8fafc; }
+      .btn-light { background: white; color: var(--ink); }
+      .btn-block { width: 100%; }
+      :focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+
+      main { flex: 1; padding: 3rem 0 4rem; }
+      .card { background: white; border: 1px solid var(--line); border-radius: 0.75rem; box-shadow: var(--shadow-card); }
+      .pad { padding: 1.5rem; }
+      .eyebrow { font-size: 0.875rem; font-weight: 500; color: var(--indigo); }
+      .page-title { margin-top: 0.5rem; font-size: 1.875rem; line-height: 1.25; font-weight: 600; letter-spacing: -0.02em; }
+      .lede { margin-top: 0.75rem; max-width: 42rem; color: #475569; line-height: 1.75; }
+      .muted { color: var(--muted); }
+      .small { font-size: 0.75rem; }
+      .text-sm { font-size: 0.875rem; line-height: 1.7; color: #475569; }
+      .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+      .section-head h2 { font-size: 1rem; font-weight: 600; }
+      .stack > * + * { margin-top: 1.5rem; }
+
+      /* 结论徽章 */
+      .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 500; box-shadow: inset 0 0 0 1px currentColor; }
+      .badge.automatable { background: #ecfdf5; color: #047857; box-shadow: inset 0 0 0 1px rgb(5 150 105 / 0.2); }
+      .badge.partial { background: #fffbeb; color: #92400e; box-shadow: inset 0 0 0 1px rgb(217 119 6 / 0.25); }
+      .badge.not_target { background: #f1f5f9; color: #334155; box-shadow: inset 0 0 0 1px rgb(100 116 139 / 0.2); }
+      .dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; flex-shrink: 0; }
+      .dot.automatable { background: #10b981; }
+      .dot.partial { background: #f59e0b; }
+      .dot.not_target { background: var(--faint); }
+      .actor { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.1rem 0.4rem; border-radius: 0.375rem; font-size: 11px; font-weight: 500; }
+      .actor.ai { background: var(--indigo-soft); color: #4338ca; box-shadow: inset 0 0 0 1px rgb(79 70 229 / 0.2); }
+      .actor.tool { background: #f0f9ff; color: #0369a1; box-shadow: inset 0 0 0 1px rgb(2 132 199 / 0.2); }
+      .actor.human { background: #f1f5f9; color: #334155; box-shadow: inset 0 0 0 1px rgb(100 116 139 / 0.2); }
+
+      /* 首页 */
+      .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem; align-items: center; }
+      .pill { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem; border-radius: 999px; border: 1px solid #c7d2fe; background: var(--indigo-soft); color: #4338ca; font-size: 0.75rem; font-weight: 500; }
+      .hero h1 { margin-top: 1.5rem; font-size: 3rem; line-height: 1.15; font-weight: 600; letter-spacing: -0.025em; }
+      .hero h1 span { display: block; }
+      .hero h1 .accent { color: var(--indigo); }
+      .hero .lede { font-size: 1.0625rem; line-height: 1.85; margin-top: 1.5rem; }
+      .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; max-width: 28rem; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+      .stats dt { font-size: 0.75rem; color: var(--muted); }
+      .stats dd { margin-top: 0.25rem; font-size: 1.5rem; font-weight: 600; }
+      .preview-wrap { position: relative; }
+      .preview-wrap::before { content: ""; position: absolute; inset: -1.5rem; z-index: -1; border-radius: 28px; background: linear-gradient(135deg, #e0e7ff, #ffffff 55%, #ecfdf5); filter: blur(24px); }
+      .preview { overflow: hidden; box-shadow: var(--shadow-lift); }
+      .preview-head { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--line-soft); }
+      .preview-body { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: center; padding: 1.25rem; }
+      .preview-body p { font-size: 0.875rem; line-height: 1.7; font-weight: 500; }
+      .preview-steps { padding: 1rem 1.25rem; border-top: 1px solid var(--line-soft); background: rgb(248 250 252 / 0.6); }
+      .preview-steps li { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: var(--text); }
+      .preview-steps li + li { margin-top: 0.75rem; }
+      .preview-steps li span:nth-child(2) { flex: 1; }
+      .num { width: 1.5rem; height: 1.5rem; border-radius: 999px; background: white; box-shadow: inset 0 0 0 1px var(--line); display: grid; place-items: center; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+      .block-title { margin-top: 0.5rem; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
+      .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2rem; }
+      .feature .icon-box { width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--indigo-soft); color: var(--indigo); display: grid; place-items: center; }
+      .feature h3 { margin-top: 1.25rem; font-size: 1rem; font-weight: 600; }
+      .feature p { margin-top: 0.5rem; }
+      .between { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+      .verdict-card { display: flex; flex-direction: column; text-align: left; transition: box-shadow 0.15s; }
+      .verdict-card:hover { box-shadow: var(--shadow-lift); }
+      .verdict-card .example { margin-top: 1.5rem; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--line-soft); background: #f8fafc; }
+      .verdict-card .example p:last-child { margin-top: 0.35rem; font-size: 0.875rem; line-height: 1.7; color: #1e293b; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .link { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1.25rem; font-size: 0.875rem; font-weight: 500; color: var(--indigo); }
+      .cta { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 2.5rem 2rem; border-radius: 1rem; background: var(--ink); color: white; }
+      .cta h2 { font-size: 1.25rem; font-weight: 600; }
+      .cta p { margin-top: 0.5rem; font-size: 0.875rem; color: #cbd5e1; }
+      .gap-xl > * + * { margin-top: 6rem; }
+
+      /* 判定页 */
+      .form-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; margin-top: 2rem; }
+      .form-card { overflow: hidden; }
+      .form-body { padding: 1.75rem; }
+      .form-body > * + * { margin-top: 1.5rem; }
+      .label { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.875rem; font-weight: 500; }
+      .label .opt { font-weight: 400; color: var(--faint); }
+      .field { width: 100%; margin-top: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; background: white; padding: 0 0.875rem; height: 2.75rem; box-shadow: var(--shadow-card); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+      .field:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgb(99 102 241 / 0.15); }
+      textarea.field { height: auto; padding: 0.75rem 0.875rem; line-height: 1.75; resize: none; }
+      .row-2 { display: grid; grid-template-columns: 1fr 180px; gap: 1.5rem; }
+      fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+      legend { padding: 0; font-size: 0.875rem; font-weight: 500; }
+      .seg { display: grid; gap: 0.25rem; padding: 0.25rem; margin-top: 0.5rem; border-radius: 0.5rem; background: #f1f5f9; }
+      .seg.four { grid-template-columns: repeat(4, 1fr); }
+      .seg.three-col { grid-template-columns: repeat(3, 1fr); }
+      .seg button { height: 2.25rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; color: var(--muted); }
+      .seg.compact button { height: 2rem; font-size: 0.75rem; padding: 0 0.75rem; }
+      .seg button[aria-pressed="true"] { background: white; color: var(--ink); box-shadow: var(--shadow-card); }
+      .suffix { position: relative; }
+      .suffix span { position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%); margin-top: 0.25rem; font-size: 0.875rem; color: var(--faint); pointer-events: none; }
+      .form-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 1.75rem; border-top: 1px solid var(--line-soft); background: rgb(248 250 252 / 0.7); }
+      .hint { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--muted); }
+      .error { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.875rem; border-radius: 0.5rem; background: #fef2f2; color: #b91c1c; font-size: 0.875rem; }
+      .side > * + * { margin-top: 1rem; }
+      .side h3 { font-size: 0.875rem; font-weight: 600; }
+      .case-btn { display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.6rem 0.75rem; border: 1px solid transparent; border-radius: 0.5rem; font-size: 0.875rem; color: var(--text); text-align: left; }
+      .case-btn:hover { background: #f8fafc; }
+      .case-btn[aria-pressed="true"] { border-color: #a5b4fc; background: var(--indigo-soft); color: #312e81; }
+      .case-btn span:nth-child(2) { flex: 1; }
+      .case-list { margin-top: 1rem; max-height: 22rem; overflow: auto; }
+      .case-list > * + * { margin-top: 0.35rem; }
+      .dims { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+      .dims li { padding: 0.35rem 0.6rem; border-radius: 0.375rem; font-size: 0.75rem; background: #f8fafc; color: #475569; }
+      .dims li.block { background: #fffbeb; color: #92400e; }
+
+      /* 分析中 */
+      .analyzing { max-width: 32rem; margin: 3rem auto 0; text-align: center; padding: 2.5rem 2rem; }
+      .spinner { width: 2.5rem; height: 2.5rem; margin: 0 auto; border-radius: 999px; border: 3px solid #e0e7ff; border-top-color: var(--indigo); animation: spin 0.8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .analyzing h1 { margin-top: 1.25rem; font-size: 1.25rem; font-weight: 600; }
+      .checks { margin-top: 1.5rem; text-align: left; display: inline-block; }
+      .checks li { display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem; color: var(--muted); }
+      .checks li + li { margin-top: 0.6rem; }
+      .checks li.done { color: var(--ink); }
+      .checks li.done svg { color: var(--emerald); }
+
+      /* 结果页 */
+      .meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 0.75rem; font-size: 0.875rem; color: var(--muted); }
+      .meta span { display: inline-flex; align-items: center; gap: 0.35rem; }
+      .notice { display: flex; gap: 0.6rem; align-items: flex-start; margin-top: 1.5rem; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #e0e7ff; background: rgb(238 242 255 / 0.6); color: #312e81; font-size: 0.875rem; line-height: 1.7; }
+      .notice svg { margin-top: 0.2rem; color: #6366f1; }
+      .result-grid { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; margin-top: 1.5rem; }
+      .summary-card { position: sticky; top: 8rem; }
+      .ring { position: relative; width: 7rem; height: 7rem; border-radius: 999px; background: conic-gradient(var(--stroke) calc(var(--score) * 1%), #e2e8f0 0); display: grid; place-items: center; flex-shrink: 0; }
+      .ring.sm { width: 6rem; height: 6rem; }
+      .ring > div { width: calc(100% - 16px); height: calc(100% - 16px); border-radius: 999px; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      .ring b { font-size: 1.875rem; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+      .ring.sm b { font-size: 1.6rem; }
+      .ring small { margin-top: 0.2rem; font-size: 11px; color: var(--muted); }
+      .score-row { display: flex; align-items: center; gap: 1.25rem; margin-top: 1.25rem; }
+      .score-row dl > div + div { margin-top: 0.75rem; }
+      .score-row dt { font-size: 0.75rem; color: var(--muted); }
+      .score-row dd { margin-top: 0.1rem; font-size: 0.875rem; font-weight: 600; }
+      .divider { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line-soft); }
+      .dim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 2rem; margin-top: 1.25rem; }
+      .dim-head { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; }
+      .dim-head dt { display: flex; align-items: center; gap: 0.35rem; color: var(--text); }
+      .dim-head .flag { padding: 0 0.25rem; border-radius: 0.25rem; background: #f1f5f9; font-size: 10px; color: var(--muted); }
+      .meter { display: flex; gap: 0.25rem; margin-top: 0.5rem; }
+      .meter i { flex: 1; height: 6px; border-radius: 999px; background: var(--line-soft); }
+      .meter i.on { background: #6366f1; }
+      .meter.block i.on { background: var(--faint); }
+      .meter.warn i.on { background: #f59e0b; }
+      .trigger { display: flex; gap: 0.75rem; align-items: flex-start; margin-top: 1.25rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: var(--ink); color: #f1f5f9; font-size: 0.875rem; }
+      .trigger svg { margin-top: 0.15rem; color: #fcd34d; }
+      .trigger em { font-style: normal; color: var(--faint); }
+      .timeline { margin-top: 1.5rem; }
+      .timeline li { position: relative; display: flex; gap: 1rem; padding-bottom: 1.5rem; }
+      .timeline li:last-child { padding-bottom: 0; }
+      .timeline li:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 2rem; bottom: 0; width: 1px; background: var(--line); }
+      .timeline .num { width: 2rem; height: 2rem; font-size: 0.75rem; font-weight: 500; color: #475569; }
+      .timeline .body { flex: 1; min-width: 0; padding-top: 0.25rem; }
+      .timeline h3 { font-size: 0.9375rem; font-weight: 500; }
+      .step-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+      .timeline p { margin-top: 0.25rem; }
+      .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 1.5rem; }
+      .detail { padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--line-soft); background: rgb(248 250 252 / 0.7); }
+      .detail h3 { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; }
+      .detail h3 svg { color: var(--muted); }
+      .detail ul { margin-top: 0.75rem; }
+      .detail li { display: flex; gap: 0.5rem; font-size: 0.875rem; line-height: 1.7; color: #475569; }
+      .detail li + li { margin-top: 0.5rem; }
+      .detail li::before { content: ""; width: 4px; height: 4px; margin-top: 0.65rem; border-radius: 999px; background: var(--faint); flex-shrink: 0; }
+      .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.25rem; }
+      .tool-card { display: flex; gap: 0.75rem; padding: 1rem; border: 1px solid var(--line); border-radius: 0.5rem; }
+      .tool-card .initial { width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: #f1f5f9; display: grid; place-items: center; font-size: 0.875rem; font-weight: 600; color: var(--text); flex-shrink: 0; }
+      .tool-card h3 { font-size: 0.9375rem; font-weight: 500; }
+      .tool-card p { margin-top: 0.25rem; }
+      .diff { padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-size: 11px; font-weight: 500; }
+      .diff.low { background: #ecfdf5; color: #047857; }
+      .diff.medium { background: #fffbeb; color: #92400e; }
+      .diff.high { background: #fff1f2; color: #be123c; }
+      .scope { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      .scope .soft { background: #f8fafc; }
+      .scope .ico { width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; display: grid; place-items: center; background: white; color: #475569; box-shadow: inset 0 0 0 1px var(--line); }
+      .scope .ico.indigo { background: var(--indigo-soft); color: var(--indigo); box-shadow: none; }
+      .scope h2 { margin-top: 1rem; font-size: 1rem; font-weight: 600; }
+      .scope p { margin-top: 0.5rem; }
+
+      /* 清单 */
+      .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2rem; }
+      .stat { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; }
+      .stat .icon-box { width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--indigo-soft); color: var(--indigo); display: grid; place-items: center; }
+      .stat b { display: block; margin-top: 0.1rem; font-size: 1.125rem; font-weight: 600; }
+      .lib-list { margin-top: 1.5rem; }
+      .lib-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.25rem; }
+      .lib-list li + li { border-top: 1px solid var(--line-soft); }
+      .lib-list li.dropped { opacity: 0.6; }
+      .lib-list h3 { margin-top: 0.5rem; font-size: 0.9375rem; font-weight: 500; }
+      .lib-list .saved { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.25rem; font-size: 0.875rem; color: var(--muted); }
+      .empty { margin-top: 1.5rem; padding: 3.5rem 1.5rem; border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: rgb(255 255 255 / 0.6); text-align: center; }
+      .empty .circle { width: 2.75rem; height: 2.75rem; margin: 0 auto; border-radius: 999px; background: #f1f5f9; color: var(--muted); display: grid; place-items: center; }
+      .empty p:first-of-type { margin-top: 1rem; font-weight: 500; }
+
+      footer.foot { border-top: 1px solid var(--line); }
+      .foot-row { height: 3.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--muted); }
+
+      nav.bottom { display: none; position: fixed; inset: auto 0 0; z-index: 20; border-top: 1px solid var(--line); background: rgb(255 255 255 / 0.95); backdrop-filter: blur(10px); padding-bottom: env(safe-area-inset-bottom); }
+      nav.bottom .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); }
+      nav.bottom button { height: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; font-size: 11px; font-weight: 500; color: var(--muted); }
+      nav.bottom button[aria-current="page"] { color: var(--indigo); }
+
+      @media (max-width: 1023px) {
+        .hero, .form-grid, .result-grid { grid-template-columns: 1fr; }
+        .summary-card { position: static; }
+      }
+      @media (max-width: 767px) {
+        main { padding: 2rem 0 7rem; }
+        .nav-desktop, .hide-sm, footer.foot { display: none; }
+        nav.bottom { display: block; }
+        .hero h1 { font-size: 2.25rem; }
+        .three, .stat-grid, .details, .tools, .scope, .dim-grid, .row-2 { grid-template-columns: 1fr; }
+        .cta, .form-foot, .lib-list li { flex-direction: column; align-items: flex-start; }
+        .form-foot { flex-direction: column-reverse; align-items: stretch; }
+        .gap-xl > * + * { margin-top: 4rem; }
+        .demo-row .step-text { min-width: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap top-row">
+        <button class="brand" type="button" data-action="goto" data-view="home">
+          <span class="logo" data-icon="bolt"></span>
+          <span style="text-align:left"><b>PainPilot</b><small>痛点自动化</small></span>
+        </button>
+        <nav class="nav-desktop" aria-label="主导航">
+          <button class="nav-link" type="button" data-action="goto" data-view="form">判定</button>
+          <button class="nav-link" type="button" data-action="goto" data-view="library">清单</button>
+          <button class="nav-link" type="button" data-action="goto" data-view="home">关于</button>
+        </nav>
+        <button class="btn btn-primary btn-sm" type="button" data-action="autoplay">自动播放演示</button>
+      </div>
+    </header>
+    <div class="demo-bar">
+      <div class="wrap demo-row">
+        <span class="tag"><span data-icon="info" data-size="12"></span>离线演示</span>
+        <span class="hide-sm">与当前产品同一套规则：六维评分，固定规则汇总结论。本页不联网，可直接转发</span>
+        <div class="progress" aria-hidden="true"><i id="progress"></i></div>
+        <span class="step-text mono" id="step-text">手动浏览</span>
+      </div>
+    </div>
+    <main><div class="wrap" id="screen"></div></main>
+    <footer class="foot">
+      <div class="wrap foot-row">
+        <span>PainPilot 初版 · 判定结果只保存在本机浏览器</span>
+        <span>不能被自动化的痛点，不在本产品范围内</span>
+      </div>
+    </footer>
+    <nav class="bottom" aria-label="底部导航">
+      <div class="grid3">
+        <button type="button" data-action="goto" data-view="form"><span data-icon="gauge" data-size="20"></span>判定</button>
+        <button type="button" data-action="goto" data-view="library"><span data-icon="list" data-size="20"></span>清单</button>
+        <button type="button" data-action="goto" data-view="home"><span data-icon="info" data-size="20"></span>关于</button>
+      </div>
+    </nav>
+    <script id="case-data" type="application/json">{"cases":[{"id":"invoices","chip":"报销发票","keywords":["发票","报销","邮箱"],"verdict":"automatable","input":{"pain":"每周都要把邮箱里的电子发票下载下来，按日期改名，再填进报销表。","frequency":"weekly","minutesPerTime":40,"context":"发票来自邮箱，表格是公司固定模板。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":5,"digitalIo":5,"toolReach":4,"judgmentNeed":1,"physicalDependence":0},"summary":"发票从邮箱到表格是固定规则，输入和输出都是文件，适合交给自动化，你只看异常行。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"每周一早上，邮箱出现带发票附件的新邮件。","steps":[{"title":"盯住发票邮件","detail":"只收取标题或发件人符合发票规则的新邮件，忽略其余信件。","actor":"tool"},{"title":"抽出票据字段","detail":"从附件读取日期、金额、商家和发票号，缺字段就标成待确认。","actor":"ai"},{"title":"写入报销表","detail":"按「日期-商家-金额」重命名附件，并在固定模板追加一行。","actor":"tool"},{"title":"只看异常","detail":"金额或抬头对不上的行留给你确认，其余不再手工誊写。","actor":"human"}],"permissions":["读取指定邮箱","编辑报销表"],"checkpoints":["金额或抬头对不上时停下来等你确认"],"risks":["误把非发票附件写入表格"],"tools":[{"name":"n8n","reason":"适合把邮箱、识别和表格串成一条固定流程。","difficulty":"medium"},{"name":"Make","reason":"不想自己管服务器时，可以用现成的邮件到表格场景。","difficulty":"low"}]},"tools":[{"name":"n8n","reason":"适合把邮箱、识别和表格串成一条固定流程。","difficulty":"medium"},{"name":"Make","reason":"不想自己管服务器时，可以用现成的邮件到表格场景。","difficulty":"low"}]}},{"id":"meeting-notes","chip":"会议纪要","keywords":["会议","纪要","待办","录音"],"verdict":"automatable","input":{"pain":"每次开完会都要重听录音，把结论和待办抄进文档，再分别提醒负责人。","frequency":"weekly","minutesPerTime":35,"context":"会后能拿到录音或转写文本。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":4,"digitalIo":5,"toolReach":4,"judgmentNeed":2,"physicalDependence":0},"summary":"会后整理的模式稳定，转写文本可以交给 AI 出草稿，分配前仍需要你看一眼。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"一场会议结束，录音或转写文件出现在指定位置。","steps":[{"title":"取得转写","detail":"读取会议录音转写，没有转写时先生成文本，不改原始录音。","actor":"tool"},{"title":"整理待办草稿","detail":"抽出结论、负责人和截止日期。不确定的人名不要猜。","actor":"ai"},{"title":"写入提醒","detail":"把已确认的待办放进任务列表，并按截止日期创建提醒。","actor":"tool"},{"title":"核对负责人","detail":"你确认没有把任务分错人，然后才发出提醒。","actor":"human"}],"permissions":["读取会议转写","写入任务列表"],"checkpoints":["负责人或截止日期不确定时不自动分配"],"risks":["转写错误会传给后面的待办"],"tools":[{"name":"Cursor","reason":"把转写文本整理成固定格式的待办草稿。","difficulty":"low"},{"name":"n8n","reason":"确认后的待办可以同步到日历或任务工具。","difficulty":"medium"}]},"tools":[{"name":"Cursor","reason":"把转写文本整理成固定格式的待办草稿。","difficulty":"low"},{"name":"n8n","reason":"确认后的待办可以同步到日历或任务工具。","difficulty":"medium"}]}},{"id":"group-mentions","chip":"群消息","keywords":["群","消息","点名"],"verdict":"automatable","input":{"pain":"每天要翻好几个工作群，把别人点名要我处理的事情摘出来，不然就会漏。","frequency":"daily","minutesPerTime":20,"context":"只关心点名和明确要回复的事项。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":4,"digitalIo":5,"toolReach":4,"judgmentNeed":1,"physicalDependence":0},"summary":"从固定群聊里抽取点名事项是重复的文本处理。可以自动整理，不应该自动回复。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"每个工作日 18:00，或每两小时一次。","steps":[{"title":"拉取新消息","detail":"只读取你指定的群，不扫描私人对话。","actor":"tool"},{"title":"抽出要处理的句子","detail":"保留点名你、含截止时间或明确请求的句子，其余丢掉。","actor":"ai"},{"title":"生成个人清单","detail":"把这些句子写成一张待处理清单，发给你自己。","actor":"tool"},{"title":"决定是否回复","detail":"回复仍然由你发送，流程到清单为止。","actor":"human"}],"permissions":["读取指定群聊"],"checkpoints":["不自动代表你回复任何人"],"risks":["没有点名、但其实需要你的消息可能被漏掉"],"tools":[{"name":"iOS 快捷指令","reason":"个人聊天记录可以导出后，按固定时间整理成提醒。","difficulty":"low"},{"name":"n8n","reason":"群机器人能提供消息接口时，可以按点自动跑。","difficulty":"medium"}]},"tools":[{"name":"iOS 快捷指令","reason":"个人聊天记录可以导出后，按固定时间整理成提醒。","difficulty":"low"},{"name":"n8n","reason":"群机器人能提供消息接口时，可以按点自动跑。","difficulty":"medium"}]}},{"id":"grocery-list","chip":"买菜清单","keywords":["买菜","冰箱","超市","库存"],"verdict":"partial","input":{"pain":"每周买菜都要先看冰箱还剩什么，再决定买什么，到了超市还是经常漏。","frequency":"weekly","minutesPerTime":30,"context":"人还是得去超市，麻烦主要在清单。"},"draft":{"dimensions":{"repetition":4,"ruleClarity":3,"digitalIo":4,"toolReach":3,"judgmentNeed":2,"physicalDependence":5},"summary":"生成购物清单可以自动化，但查看实物库存和去超市仍然要你本人完成。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"每周采购前一天晚上。","steps":[{"title":"提供库存","detail":"你拍一张冰箱照片，或勾选还剩的品类。这一步不能省略。","actor":"human"},{"title":"对照常买清单","detail":"根据照片或勾选，标出要买和先不用买的项目，看不清就不猜。","actor":"ai"},{"title":"写入购物清单","detail":"只把要买的项目放进手机购物清单。","actor":"tool"},{"title":"去超市","detail":"采购本身仍由你完成，流程不覆盖出门和挑选。","actor":"human"}],"permissions":["读取你维护的常买清单","写入购物清单"],"checkpoints":["照片看不清时不猜库存"],"risks":["临期食品和口味偏好不能只靠清单判断"],"tools":[{"name":"iOS 快捷指令","reason":"把整理后的文本库存写成提醒事项里的购物清单。","difficulty":"low"},{"name":"Tasker","reason":"Android 上可以用同一条规则写入清单。","difficulty":"medium"}]},"tools":[{"name":"iOS 快捷指令","reason":"把整理后的文本库存写成提醒事项里的购物清单。","difficulty":"low"},{"name":"Tasker","reason":"Android 上可以用同一条规则写入清单。","difficulty":"medium"}]}},{"id":"roommate","chip":"室友矛盾","keywords":["室友","吵架","作息","开口"],"verdict":"not_target","input":{"pain":"和室友因为打扫和作息吵了几次，不知道下次怎么开口才不会更僵。","frequency":"occasional","minutesPerTime":15,"context":""},"draft":{"dimensions":{"repetition":2,"ruleClarity":1,"digitalIo":0,"toolReach":0,"judgmentNeed":5,"physicalDependence":1},"summary":"这件事的难点是关系判断，不是一段可以交给软件重复执行的流程。","outOfScopeReason":"怎么开口取决于对方当下的反应，不能安全地自动化。本产品不提供沟通建议。","rewriteHint":"如果真正耗时的是约时间或记下已经达成的约定，把那一段单独写成重复流程。","blueprint":null,"tools":[]}},{"id":"morning-run","chip":"早起跑步","keywords":["跑步","早起","闹钟","习惯"],"verdict":"not_target","input":{"pain":"想养成早上跑步的习惯，但是闹钟一响就关掉，坚持不下来。","frequency":"daily","minutesPerTime":10,"context":""},"draft":{"dimensions":{"repetition":5,"ruleClarity":2,"digitalIo":1,"toolReach":1,"judgmentNeed":2,"physicalDependence":5},"summary":"早起跑步主要发生在物理世界，闹钟解决不了人要自己出门。","outOfScopeReason":"核心动作依赖本人到场，没有稳定的数字化输入输出可以接走。","rewriteHint":"如果痛点其实是忘记看天气和路线，可以只把出门前的信息准备交给自动化。","blueprint":null,"tools":[]}},{"id":"pickup-codes","chip":"取件码","keywords":["取件码","快递","备忘录"],"verdict":"automatable","input":{"pain":"每天要把三个聊天窗口里的快递取件码抄到备忘录里，还经常抄错柜号。","frequency":"daily","minutesPerTime":10,"context":"取件码和柜号都写在指定对话里。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":5,"digitalIo":5,"toolReach":4,"judgmentNeed":1,"physicalDependence":1},"summary":"抄取件码是固定格式的文本搬运。可以自动收成一张清单，去快递柜这一步仍由你完成。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"每天下午和晚上各检查一次指定对话。","steps":[{"title":"读取新消息","detail":"只看你指定的对话，不扫描其他聊天。","actor":"tool"},{"title":"抽出柜号和验证码","detail":"保留快递点、柜号和取件码。缺一项就标成待核对，不补造。","actor":"ai"},{"title":"写入备忘录","detail":"按到达时间追加到同一条备忘录，重复的取件码不写第二次。","actor":"tool"},{"title":"按清单去取","detail":"你对照备忘录取件。流程到清单为止，不代替你出门。","actor":"human"}],"permissions":["读取指定对话","写入备忘录"],"checkpoints":["柜号或取件码缺一项时不写入"],"risks":["过期码和别人的包裹可能被一起抄进来"]},"tools":[{"name":"iOS 快捷指令","reason":"把整理后的取件信息追加到备忘录或提醒事项。","difficulty":"low"},{"name":"n8n","reason":"消息能导出时，可以按固定时间去重并写入表格。","difficulty":"medium"}]}},{"id":"weekly-report","chip":"周报","keywords":["周报","阻塞"],"verdict":"automatable","input":{"pain":"每周五要把本周完成的任务、阻塞和下周计划整理成固定格式的周报。","frequency":"weekly","minutesPerTime":45,"context":"任务在表格或项目工具里，周报用公司固定模板。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":5,"digitalIo":5,"toolReach":4,"judgmentNeed":1,"physicalDependence":0},"summary":"周报模板固定，材料已经在任务工具里。可以先生成草稿，你只改判断和措辞。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"每周五 16:00，或你手动点一次生成。","steps":[{"title":"拉取本周任务","detail":"读取已完成、进行中和标成阻塞的条目，不改原任务。","actor":"tool"},{"title":"按模板起草","detail":"分成完成、阻塞、下周计划三段。没有依据的进度不要写成已完成。","actor":"ai"},{"title":"放进周报文档","detail":"把草稿写到固定文档的本周栏目，保留上一版方便对比。","actor":"tool"},{"title":"你改完再发","detail":"对外发送前由你确认，流程不自动发给上级。","actor":"human"}],"permissions":["读取任务列表","编辑周报文档"],"checkpoints":["发送前必须由你确认"],"risks":["任务状态没更新时，草稿会少记完成项"]},"tools":[{"name":"Cursor","reason":"把导出的任务列表整理成固定三段周报。","difficulty":"low"},{"name":"飞书多维表格","reason":"任务和周报都在飞书时，可以用自动化把行汇总进文档。","difficulty":"medium"}]}},{"id":"subscriptions","chip":"订阅扣费","keywords":["订阅","扣费"],"verdict":"automatable","input":{"pain":"每个月都要把各个订阅服务的扣费日期和金额，从通知里登记到一张表上。","frequency":"monthly","minutesPerTime":25,"context":"扣费通知集中在同一个收件箱，表格字段固定。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":5,"digitalIo":5,"toolReach":4,"judgmentNeed":1,"physicalDependence":0},"summary":"扣费通知的字段稳定，适合自动入账。对不上的金额留给你看，不自动取消订阅。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"每月 1 日，或出现新的扣费通知时。","steps":[{"title":"收集扣费通知","detail":"只收取标题或发件人符合订阅规则的通知。","actor":"tool"},{"title":"抽出金额和日期","detail":"读取服务名、金额、币种和下次扣费日。认不出金额就标空。","actor":"ai"},{"title":"写入账单表","detail":"同一服务同一月份只保留一行，金额变化时标红。","actor":"tool"},{"title":"看异常扣费","detail":"你决定要不要取消。流程不操作支付账户。","actor":"human"}],"permissions":["读取扣费通知","编辑账单表"],"checkpoints":["金额识别失败时不写入"],"risks":["促销价和续费价可能被记成同一档"]},"tools":[{"name":"Make","reason":"用现成的邮件到表格场景登记订阅扣费。","difficulty":"low"},{"name":"n8n","reason":"需要去重和标红时，可以自己串识别与表格。","difficulty":"medium"}]}},{"id":"applications","chip":"投递进度","keywords":["海投","投递"],"verdict":"automatable","input":{"pain":"海投之后要记下公司、岗位、投递日期和当前状态，回复一多就对不上。","frequency":"weekly","minutesPerTime":30,"context":"确认信和状态邮件都在同一个收件箱。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":4,"digitalIo":5,"toolReach":4,"judgmentNeed":2,"physicalDependence":0},"summary":"投递记录是重复的信息抽取。状态可以自动归档，要不要继续跟进仍由你决定。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"收到投递确认或状态变更邮件时。","steps":[{"title":"识别投递邮件","detail":"筛出确认、笔试、面试邀请和拒绝，忽略其他信件。","actor":"tool"},{"title":"抽出公司和状态","detail":"记录公司、岗位、日期。状态只取邮件里写明的，不推断录用。","actor":"ai"},{"title":"更新进度表","detail":"同一公司同一岗位更新同一行，并记下最近一封邮件的日期。","actor":"tool"},{"title":"决定下一步","detail":"你决定回复、准备或放弃。流程不自动回信。","actor":"human"}],"permissions":["读取投递邮件","编辑进度表"],"checkpoints":["不自动代表你回复招聘方"],"risks":["相似岗位名称可能被并成同一行"]},"tools":[{"name":"Notion","reason":"用数据库记下公司、岗位和状态，邮件内容整理后再贴入。","difficulty":"low"},{"name":"n8n","reason":"邮件到达后自动抽取字段并更新表格。","difficulty":"medium"}]}},{"id":"faq-replies","chip":"重复咨询","keywords":["报名","复制粘贴"],"verdict":"automatable","input":{"pain":"每天都有人问同样的报名时间和材料清单，我要一条条复制粘贴回复。","frequency":"daily","minutesPerTime":20,"context":"问题和答案都有标准口径，入口是固定表单或邮箱。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":5,"digitalIo":5,"toolReach":4,"judgmentNeed":2,"physicalDependence":0},"summary":"标准问题可以自动起草回复。口径外的问题停下来等你，不自动发出。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"新咨询进入指定表单或收件箱。","steps":[{"title":"读取新咨询","detail":"只处理指定入口，保留原问题不改写。","actor":"tool"},{"title":"对照标准答案","detail":"命中报名时间或材料清单时起草回复。对不上标准口径就标成人工。","actor":"ai"},{"title":"放入待发送","detail":"草稿进待发送列表，不直接发出。","actor":"tool"},{"title":"你确认后发送","detail":"口径外的问题由你重写。确认后的才发出。","actor":"human"}],"permissions":["读取咨询入口","写入待发送草稿"],"checkpoints":["任何回复发出前都要你确认"],"risks":["问题措辞相近但要求不同，可能套错答案"]},"tools":[{"name":"Coze","reason":"把标准问答做成机器人草稿，不确定时转人工。","difficulty":"low"},{"name":"n8n","reason":"表单进来后匹配答案并写入待发送队列。","difficulty":"medium"}]}},{"id":"deadlines","chip":"作业截止","keywords":["作业","截止","日历"],"verdict":"automatable","input":{"pain":"每门课的作业截止时间散落在公告和通知里，我要自己抄进日历。","frequency":"weekly","minutesPerTime":15,"context":"公告和课程通知都能导出成文本。"},"draft":{"dimensions":{"repetition":5,"ruleClarity":4,"digitalIo":5,"toolReach":4,"judgmentNeed":1,"physicalDependence":0},"summary":"从通知里抽取截止日期是稳定的文本任务。写进日历即可，不代替你写作业。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"每周日晚上，或出现新的课程通知时。","steps":[{"title":"收集课程通知","detail":"读取你指定的课程通知，忽略闲聊。","actor":"tool"},{"title":"抽出截止时间","detail":"记录课程、作业名和截止时间。时间含糊就标成待确认。","actor":"ai"},{"title":"写入日历","detail":"在截止前一天建一条提醒，已存在的不重复创建。","actor":"tool"},{"title":"核对含糊日期","detail":"写着「下周」但没有具体日期的，等你补上再进日历。","actor":"human"}],"permissions":["读取课程通知","写入日历"],"checkpoints":["没有明确日期时不创建日程"],"risks":["时区或「今晚」这类说法可能被算错一天"]},"tools":[{"name":"iOS 快捷指令","reason":"把整理好的日期写成日历提醒。","difficulty":"low"},{"name":"Make","reason":"通知邮件可以直接变成日历事件。","difficulty":"low"}]}},{"id":"travel-plan","chip":"差旅行程","keywords":["出差","机票","行程单"],"verdict":"automatable","input":{"pain":"每次出差都要把机票、酒店和日程从不同通知里抄进一张行程单。","frequency":"occasional","minutesPerTime":40,"context":"机票和酒店确认都在同一个收件箱。"},"draft":{"dimensions":{"repetition":4,"ruleClarity":5,"digitalIo":5,"toolReach":4,"judgmentNeed":1,"physicalDependence":0},"summary":"确认单里的时间、地点和班次是固定字段。可以自动拼成行程单，改签仍由你处理。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"同一趟出差出现新的机票或酒店确认。","steps":[{"title":"收集确认单","detail":"把同一日期范围内的机票和酒店通知归到一趟行程。","actor":"tool"},{"title":"抽出时间和地点","detail":"读取班次、起降或入住时间、地址。缺字段就留空。","actor":"ai"},{"title":"生成行程单","detail":"按时间排成一张单，并附上原始确认的链接或编号。","actor":"tool"},{"title":"核对改签","detail":"行程冲突或改签邮件由你确认，不自动改订单。","actor":"human"}],"permissions":["读取行程邮件","编辑行程文档"],"checkpoints":["两段时间重叠时停下来等你看"],"risks":["去程和返程可能被排进错误的一天"]},"tools":[{"name":"Notion","reason":"用一页文档按时间线放下航班和酒店。","difficulty":"low"},{"name":"n8n","reason":"新确认邮件到达后更新同一趟行程。","difficulty":"medium"}]}},{"id":"interview-prep","chip":"面试提纲","keywords":["面试","岗位描述","提纲"],"verdict":"partial","input":{"pain":"面试前要把岗位描述和自己的项目经历整理成一页提纲，但面试还是得本人到场。","frequency":"occasional","minutesPerTime":50,"context":"岗位描述和项目材料都是现成文档。"},"draft":{"dimensions":{"repetition":4,"ruleClarity":4,"digitalIo":4,"toolReach":3,"judgmentNeed":2,"physicalDependence":5},"summary":"整理一页提纲可以交给 AI。到场回答和现场判断不能自动化。","outOfScopeReason":null,"rewriteHint":null,"blueprint":{"trigger":"你放入一份岗位描述，并指定要用的项目材料。","steps":[{"title":"读取材料和岗位","detail":"只使用你这次选中的文档，不搜索其他隐私文件。","actor":"tool"},{"title":"对照岗位起草","detail":"按岗位要求列出可讲的项目、缺口和要准备的例子。材料里没有的经历不编。","actor":"ai"},{"title":"生成一页提纲","detail":"写成一页，方便你打印或放在手机上。","actor":"tool"},{"title":"本人参加面试","detail":"现场回答、提问和判断仍由你完成。","actor":"human"}],"permissions":["读取你选定的文档"],"checkpoints":["材料里没有的经历不能写进提纲"],"risks":["岗位要求被过度对应，提纲听起来像套话"]},"tools":[{"name":"Cursor","reason":"把岗位描述和项目笔记整理成固定结构的一页提纲。","difficulty":"low"},{"name":"Notion","reason":"提纲和原始材料放在同一处，方便面试前改。","difficulty":"low"}]}}]}</script>
+    <script>
+      const cases = JSON.parse(document.getElementById("case-data").textContent).cases;
+      const labels = {
+        automatable: "可自动化",
+        partial: "部分可自动化",
+        not_target: "不在范围内",
+        daily: "每天",
+        weekly: "每周",
+        monthly: "每月",
+        occasional: "偶尔",
+        ai: "AI",
+        tool: "工具",
+        human: "你",
+        low: "容易上手",
+        medium: "需要配置",
+        high: "要先搭环境",
+        pending: "待搭建",
+        built: "已搭建",
+        dropped: "已放弃",
+      };
+      const dimensions = [
+        ["repetition", "重复性", false],
+        ["ruleClarity", "规则清晰", false],
+        ["digitalIo", "输入输出数字化", false],
+        ["toolReach", "工具够得着", false],
+        ["judgmentNeed", "需要人工判断", true],
+        ["physicalDependence", "依赖物理世界", true],
+      ];
+      const verdictIcon = { automatable: "bolt", partial: "half", not_target: "ban" };
+      const verdictStroke = { automatable: "#059669", partial: "#d97706", not_target: "#64748b" };
+      const actorIcon = { ai: "sparkles", tool: "wrench", human: "user" };
+      const verdictCopy = {
+        automatable: "规则清楚、输入输出都是数字的重复事项，给完整流程和工具。",
+        partial: "只自动化其中数字化的一段，明确标出仍需你本人完成的步骤。",
+        not_target: "依赖本人到场、关系判断或情绪的问题，说明原因后停下。",
+      };
+      const icons = {
+        arrowRight: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+        check: '<path d="M20 6 9 17l-5-5"/>',
+        clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+        sparkles: '<path d="M12 3.5 13.8 9l5.7 1.9-5.7 1.9L12 18.5l-1.8-5.7-5.7-1.9L10.2 9z"/><path d="M19 3v4M21 5h-4"/>',
+        wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.3 5.3L3.5 17.5a1.8 1.8 0 0 0 2.5 2.5l5.9-5.9a4 4 0 0 0 5.3-5.3l-2.6 2.6-2.3-.5-.5-2.3z"/>',
+        key: '<circle cx="7.5" cy="15.5" r="4"/><path d="m10.5 12.5 9-9M16 7l3 3"/>',
+        shield: '<path d="M12 3 20 6v6c0 4.7-3.4 8-8 9-4.6-1-8-4.3-8-9V6z"/>',
+        alert: '<path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>',
+        gauge: '<path d="M4 15a8 8 0 1 1 16 0"/><path d="m12 15 4-5"/>',
+        list: '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+        info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+        ban: '<circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/>',
+        bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+        half: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',
+        pen: '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/>',
+      };
+      const unmatched = {
+        id: "unmatched",
+        verdict: "not_target",
+        input: { pain: "", frequency: "occasional", minutesPerTime: 10, context: "" },
+        draft: {
+          dimensions: { repetition: 2, ruleClarity: 1, digitalIo: 1, toolReach: 1, judgmentNeed: 3, physicalDependence: 2 },
+          summary: "这段描述还看不出有一段稳定、可交给软件重复执行的流程。",
+          outOfScopeReason: "初版只处理能被 AI 或自动化工具接走的重复事项。",
+          rewriteHint: "补充它多久发生一次、输入从哪里来、希望自动产出什么。",
+          blueprint: null,
+          tools: [],
+        },
+      };
+      const state = {
+        view: "home",
+        pain: "",
+        frequency: "weekly",
+        minutes: "30",
+        context: "",
+        activeCase: null,
+        error: "",
+        result: null,
+        library: [],
+        playing: false,
+        stepIndex: 0,
+        stepTotal: 0,
+        stepName: "",
+        analyzeStage: 0,
+      };
+      let timer = 0;
+      let analyzeTimer = 0;
+
+      function icon(name, size = 16) {
+        return `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icons[name]}</svg>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char]);
+      }
+
+      function caseById(id) {
+        return cases.find((item) => item.id === id) ?? null;
+      }
+
+      function matchCase(pain) {
+        const text = pain.toLowerCase();
+        let best = null;
+        let bestScore = 0;
+        for (const item of cases) {
+          const score = item.keywords.reduce((total, keyword) => (
+            text.includes(keyword.toLowerCase()) ? total + 1 : total
+          ), 0);
+          if (score > bestScore) {
+            best = item;
+            bestScore = score;
+          }
+        }
+        return best;
+      }
+
+      function savedMinutes(input, verdict) {
+        const occasions = { daily: 30, weekly: 4, monthly: 1, occasional: 2 };
+        const coverage = { automatable: 0.7, partial: 0.4, not_target: 0 };
+        return Math.round(Number(input.minutesPerTime) * occasions[input.frequency] * coverage[verdict]);
+      }
+
+      function formatSaved(minutes) {
+        if (minutes <= 0) return "不估算节省时间";
+        if (minutes < 60) return `每月约 ${minutes} 分钟`;
+        return `每月约 ${Math.round((minutes / 60) * 10) / 10} 小时`;
+      }
+
+      function scoreOf(dimensions) {
+        const positive = dimensions.repetition + dimensions.ruleClarity + dimensions.digitalIo + dimensions.toolReach;
+        const negative = dimensions.judgmentNeed + dimensions.physicalDependence;
+        return Math.round(Math.max(0, Math.min(100, (positive / 20) * 80 + ((10 - negative) / 10) * 20)));
+      }
+
+      function badge(verdict) {
+        return `<span class="badge ${verdict}">${icon(verdictIcon[verdict], 14)}${labels[verdict]}</span>`;
+      }
+
+      function ring(score, verdict, small = false) {
+        return `<div class="ring ${small ? "sm" : ""}" role="img" aria-label="自动化得分 ${score}" style="--score:${score};--stroke:${verdictStroke[verdict]}"><div><b class="mono">${score}</b><small>/ 100</small></div></div>`;
+      }
+
+      function applyCase(id) {
+        const item = caseById(id);
+        if (!item) return;
+        state.pain = item.input.pain;
+        state.frequency = item.input.frequency;
+        state.minutes = String(item.input.minutesPerTime);
+        state.context = item.input.context;
+        state.activeCase = id;
+      }
+
+      function openResult(id) {
+        const item = id === "unmatched" ? unmatched : caseById(id);
+        const input = {
+          pain: state.pain || item.input.pain,
+          frequency: state.frequency || item.input.frequency,
+          minutesPerTime: Number(state.minutes || item.input.minutesPerTime),
+          context: state.context,
+        };
+        state.result = { item, input, saved: savedMinutes(input, item.verdict) };
+        state.view = "result";
+        window.scrollTo(0, 0);
+      }
+
+      function libraryEntry(id) {
+        return state.library.find((entry) => entry.id === id) ?? null;
+      }
+
+      function addCurrentToLibrary() {
+        const current = state.result;
+        if (!current || current.item.verdict === "not_target") return;
+        if (libraryEntry(current.item.id)) return;
+        state.library.unshift({
+          id: current.item.id,
+          pain: current.input.pain,
+          verdict: current.item.verdict,
+          saved: current.saved,
+          status: "pending",
+        });
+      }
+
+      function startAnalyzing(done) {
+        state.view = "analyzing";
+        state.analyzeStage = 0;
+        clearTimeout(analyzeTimer);
+        const tick = () => {
+          state.analyzeStage += 1;
+          if (state.view !== "analyzing") return;
+          if (state.analyzeStage >= 3) {
+            done();
+            render();
+            return;
+          }
+          render();
+          analyzeTimer = setTimeout(tick, 320);
+        };
+        render();
+        analyzeTimer = setTimeout(tick, 320);
+      }
+
+      function stopAutoplay() {
+        state.playing = false;
+        state.stepIndex = 0;
+        state.stepTotal = 0;
+        state.stepName = "";
+        clearTimeout(timer);
+      }
+
+      function autoplay() {
+        if (state.playing) {
+          stopAutoplay();
+          render();
+          return;
+        }
+        state.library = [];
+        const steps = [
+          ["首页定位", () => { state.view = "home"; }],
+          ["填写痛点", () => { state.view = "form"; applyCase("invoices"); }],
+          ["规则判定", () => { applyCase("invoices"); startAnalyzing(() => openResult("invoices")); }],
+          ["可自动化结果", () => { applyCase("invoices"); openResult("invoices"); addCurrentToLibrary(); }],
+          ["部分可自动化", () => { applyCase("grocery-list"); openResult("grocery-list"); addCurrentToLibrary(); }],
+          ["范围外拒绝", () => { applyCase("roommate"); openResult("roommate"); }],
+          ["自动化清单", () => { state.view = "library"; }],
+        ];
+        state.playing = true;
+        state.stepTotal = steps.length;
+        let index = 0;
+        const run = () => {
+          if (!state.playing) return;
+          if (index >= steps.length) {
+            stopAutoplay();
+            render();
+            return;
+          }
+          const [name, step] = steps[index];
+          state.stepName = name;
+          state.stepIndex = index + 1;
+          step();
+          index += 1;
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          render();
+          timer = setTimeout(run, 2600);
+        };
+        run();
+      }
+
+      function homeView() {
+        const featured = caseById("invoices") ?? cases[0];
+        const previewSteps = (featured.draft.blueprint?.steps ?? []).slice(0, 3).map((step, index) => `
+          <li><span class="num mono">${index + 1}</span><span>${escapeHtml(step.title)}</span><span class="actor ${step.actor}">${labels[step.actor]}</span></li>`).join("");
+        const verdictCards = ["automatable", "partial", "not_target"].map((verdict) => {
+          const item = cases.find((entry) => entry.verdict === verdict);
+          return `
+            <button class="card pad verdict-card" type="button" data-action="prefill" data-id="${item.id}">
+              <div class="between" style="width:100%">${badge(verdict)}<span class="dot ${verdict}"></span></div>
+              <p class="text-sm" style="margin-top:1rem">${verdictCopy[verdict]}</p>
+              <div class="example" style="width:100%">
+                <p class="small muted">示例 · ${escapeHtml(item.chip)}</p>
+                <p>${escapeHtml(item.input.pain)}</p>
+              </div>
+              <span class="link">用这个例子试一次${icon("arrowRight")}</span>
+            </button>`;
+        }).join("");
+        const features = [
+          ["pen", "描述一件重复的麻烦", "写下发生了什么、多久一次、每次花多久。不需要先想好方案。"],
+          ["gauge", "六维评分，规则定结论", "模型只给分数和草稿，结论由固定规则汇总，结果可以解释。"],
+          ["wrench", "拿到能落地的蓝图", "触发条件、分步执行者、权限与确认点，再配上现成工具。"],
+        ].map(([name, title, body], index) => `
+          <div class="card pad feature">
+            <div class="between"><span class="icon-box">${icon(name, 20)}</span><span class="mono small" style="color:var(--faint)">0${index + 1}</span></div>
+            <h3>${title}</h3>
+            <p class="text-sm">${body}</p>
+          </div>`).join("");
+        const score = scoreOf(featured.draft.dimensions);
+        const workflows = cases.filter((item) => item.verdict !== "not_target").map((item) => `
+          <button class="card pad verdict-card" type="button" data-action="prefill" data-id="${item.id}">
+            <div class="between" style="width:100%">${badge(item.verdict)}<span class="small muted">${formatSaved(savedMinutes(item.input, item.verdict))}</span></div>
+            <h3 style="margin-top:0.9rem;font-size:1rem">${escapeHtml(item.chip)}</h3>
+            <p class="text-sm" style="margin-top:0.4rem">${escapeHtml(item.input.pain)}</p>
+            <span class="link">看这条流程${icon("arrowRight")}</span>
+          </button>`).join("");
+        return `
+          <div class="gap-xl">
+            <section class="hero">
+              <div>
+                <span class="pill">${icon("sparkles", 14)}AI 自动化可行性判定</span>
+                <h1><span>先判断能不能自动化</span><span class="accent">再给能落地的方案</span></h1>
+                <p class="lede">PainPilot 只接手可以交给 AI 或自动化工具的重复痛点。能接走，就给流程蓝图和现成工具；接不走，就说明原因，不给泛泛建议。</p>
+                <div class="actions">
+                  <button class="btn btn-primary btn-lg" type="button" data-action="goto" data-view="form">判断一个痛点${icon("arrowRight")}</button>
+                  <button class="btn btn-secondary btn-lg" type="button" data-action="goto" data-view="library">查看自动化清单</button>
+                </div>
+                <dl class="stats">
+                  <div><dt>评分维度</dt><dd class="mono">6</dd></div>
+                  <div><dt>结论类型</dt><dd class="mono">3</dd></div>
+                  <div><dt>内置案例</dt><dd class="mono">${cases.length}</dd></div>
+                </dl>
+              </div>
+              <div class="preview-wrap">
+                <div class="card preview">
+                  <div class="preview-head"><span class="small muted">判定结果预览</span>${badge(featured.verdict)}</div>
+                  <div class="preview-body">
+                    ${ring(score, featured.verdict, true)}
+                    <div>
+                      <p>${escapeHtml(featured.input.pain)}</p>
+                      <span class="small muted" style="display:inline-flex;gap:0.35rem;align-items:center;margin-top:0.5rem">${icon("clock", 14)}${formatSaved(savedMinutes(featured.input, featured.verdict))}</span>
+                    </div>
+                  </div>
+                  <ol class="preview-steps">${previewSteps}</ol>
+                </div>
+              </div>
+            </section>
+            <section>
+              <p class="eyebrow">工作方式</p>
+              <h2 class="block-title">三步得到一份可执行的自动化方案</h2>
+              <div class="three">${features}</div>
+            </section>
+            <section>
+              <p class="eyebrow">流程实例</p>
+              <h2 class="block-title">这些重复流程可以交给 AI</h2>
+              <p class="lede">点开一条，就能看到触发条件、分步执行者和现成工具。范围外的例子留在下一节。</p>
+              <div class="three" style="margin-top:2rem">${workflows}</div>
+            </section>
+            <section>
+              <div class="between" style="align-items:flex-end;flex-wrap:wrap">
+                <div><p class="eyebrow">三种结论</p><h2 class="block-title">不是所有痛点都值得自动化</h2></div>
+                <p class="text-sm muted">点开任一示例，直接带入判定页</p>
+              </div>
+              <div class="three">${verdictCards}</div>
+            </section>
+            <section class="cta">
+              <div><h2>有一件每周都在重复的事？</h2><p>用一分钟写下来，看看它能不能交给 AI 或自动化工具。</p></div>
+              <button class="btn btn-light btn-lg" type="button" data-action="goto" data-view="form">开始判定${icon("arrowRight")}</button>
+            </section>
+          </div>`;
+      }
+
+      function formView() {
+        const chips = cases.map((item) => `
+          <button class="case-btn" type="button" data-action="pick" data-id="${item.id}" aria-pressed="${state.activeCase === item.id}">
+            <span class="dot ${item.verdict}"></span><span>${escapeHtml(item.chip)}</span><span style="color:var(--faint)">${icon("arrowRight", 14)}</span>
+          </button>`).join("");
+        const frequencies = ["daily", "weekly", "monthly", "occasional"].map((item) => `
+          <button type="button" data-action="frequency" data-value="${item}" aria-pressed="${state.frequency === item}">${labels[item]}</button>`).join("");
+        const dims = dimensions.map(([, label, blocking]) => `<li class="${blocking ? "block" : ""}">${label}</li>`).join("");
+        return `
+          <p class="eyebrow">新建判定</p>
+          <h1 class="page-title">这件事能不能交给自动化？</h1>
+          <p class="lede">写下一件重复出现的麻烦。系统先判断它是不是本产品的对象，再决定要不要给出自动化方案。</p>
+          <div class="form-grid">
+            <div class="card form-card">
+              <div class="form-body">
+                <label style="display:block">
+                  <span class="label"><span>痛点描述</span><span class="mono small" style="color:var(--faint)" id="count">${state.pain.length} / 400</span></span>
+                  <textarea class="field" rows="5" maxlength="400" data-field="pain" placeholder="例如：每周都要把邮箱里的电子发票一张张填进报销表。">${escapeHtml(state.pain)}</textarea>
+                </label>
+                <div class="row-2">
+                  <fieldset><legend>多久发生一次</legend><div class="seg four">${frequencies}</div></fieldset>
+                  <label style="display:block">
+                    <span class="label">每次大约花费</span>
+                    <span class="suffix" style="display:block"><input class="field mono" inputmode="numeric" data-field="minutes" value="${escapeHtml(state.minutes)}" style="padding-right:3.5rem" /><span>分钟</span></span>
+                  </label>
+                </div>
+                <label style="display:block">
+                  <span class="label"><span>补充背景 <span class="opt">· 可选</span></span></span>
+                  <input class="field" maxlength="200" data-field="context" value="${escapeHtml(state.context)}" placeholder="输入从哪里来，希望自动产出什么。" />
+                </label>
+                ${state.error ? `<p class="error" role="alert">${icon("alert")}${escapeHtml(state.error)}</p>` : ""}
+              </div>
+              <div class="form-foot">
+                <span class="hint">${icon("shield", 14)}结果只保存在本机，服务端日志不记录痛点正文</span>
+                <button class="btn btn-primary btn-lg" type="button" data-action="submit">判断能否自动化${icon("arrowRight")}</button>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="card" style="padding:1.25rem">
+                <h3>从示例开始</h3>
+                <p class="small muted" style="margin-top:0.25rem">点一下会填入表单，覆盖三种结论</p>
+                <div class="case-list">${chips}</div>
+              </div>
+              <div class="card" style="padding:1.25rem">
+                <h3>判定依据</h3>
+                <p class="small muted" style="margin-top:0.25rem;line-height:1.6">模型只打分，结论由固定规则汇总。后两项分数越高，越难自动化。</p>
+                <ul class="dims">${dims}</ul>
+              </div>
+            </aside>
+          </div>`;
+      }
+
+      function analyzingView() {
+        const stages = ["读取痛点描述", "六维评分", "固定规则汇总结论"];
+        const items = stages.map((name, index) => {
+          const done = index < state.analyzeStage;
+          return `<li class="${done ? "done" : ""}">${done ? icon("check") : icon("clock")}${name}</li>`;
+        }).join("");
+        return `
+          <div class="card analyzing">
+            <div class="spinner" aria-hidden="true"></div>
+            <h1>正在判断这件事能不能交给自动化</h1>
+            <p class="text-sm muted" style="margin-top:0.5rem">离线演示按关键词匹配内置案例</p>
+            <ul class="checks">${items}</ul>
+          </div>`;
+      }
+
+      function resultView() {
+        const current = state.result;
+        if (!current) return `<p>还没有判定结果。</p>`;
+        const { item, input } = current;
+        const draft = item.draft;
+        const score = scoreOf(draft.dimensions);
+        const entry = libraryEntry(item.id);
+        const dims = dimensions.map(([key, label, blocking]) => {
+          const value = draft.dimensions[key];
+          const tone = blocking ? (value >= 4 ? "warn" : "block") : "";
+          const cells = [1, 2, 3, 4, 5].map((index) => `<i class="${index <= value ? "on" : ""}"></i>`).join("");
+          return `
+            <div>
+              <div class="dim-head"><dt>${label}${blocking ? '<span class="flag">阻碍项</span>' : ""}</dt><dd class="mono">${value}<span style="color:var(--faint)">/5</span></dd></div>
+              <div class="meter ${tone}">${cells}</div>
+            </div>`;
+        }).join("");
+        const plan = draft.blueprint ? `
+          <section class="card pad">
+            <div class="section-head"><h2>流程蓝图</h2><p class="small muted">${draft.blueprint.steps.length} 个步骤</p></div>
+            <div class="trigger">${icon("bolt")}<span><em>触发 · </em>${escapeHtml(draft.blueprint.trigger)}</span></div>
+            <ol class="timeline">
+              ${draft.blueprint.steps.map((step, index) => `
+                <li>
+                  <span class="num mono">${index + 1}</span>
+                  <div class="body">
+                    <div class="step-head"><h3>${escapeHtml(step.title)}</h3><span class="actor ${step.actor}">${icon(actorIcon[step.actor], 12)}${labels[step.actor]}</span></div>
+                    <p class="text-sm">${escapeHtml(step.detail)}</p>
+                  </div>
+                </li>`).join("")}
+            </ol>
+            <div class="details">
+              ${[["key", "所需权限", draft.blueprint.permissions], ["check", "人工确认点", draft.blueprint.checkpoints], ["alert", "风险", draft.blueprint.risks]].map(([name, title, list]) => `
+                <div class="detail"><h3>${icon(name)}${title}</h3><ul>${list.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul></div>`).join("")}
+            </div>
+          </section>` : `
+          <div class="scope">
+            <section class="card pad soft"><span class="ico">${icon("ban", 18)}</span><h2>为什么不在范围内</h2><p class="text-sm">${escapeHtml(draft.outOfScopeReason || draft.summary)}</p></section>
+            <section class="card pad"><span class="ico indigo">${icon("pen", 18)}</span><h2>可以改写的那一段</h2><p class="text-sm">${escapeHtml(draft.rewriteHint || "")}</p></section>
+          </div>`;
+        const tools = draft.tools.length && item.verdict !== "not_target" ? `
+          <section class="card pad">
+            <div class="section-head"><h2>现成工具</h2><p class="small muted">按上手难度标注</p></div>
+            <div class="tools">
+              ${draft.tools.map((tool) => `
+                <article class="tool-card">
+                  <span class="initial mono">${escapeHtml(tool.name.slice(0, 1).toUpperCase())}</span>
+                  <div><div class="step-head"><h3>${escapeHtml(tool.name)}</h3><span class="diff ${tool.difficulty}">${labels[tool.difficulty]}</span></div><p class="text-sm">${escapeHtml(tool.reason)}</p></div>
+                </article>`).join("")}
+            </div>
+          </section>` : "";
+        let action = "";
+        if (item.verdict !== "not_target") {
+          action = entry
+            ? `<fieldset style="margin-top:1.5rem"><legend class="small muted" style="font-weight:500">清单状态</legend><div class="seg three-col compact">${["pending", "built", "dropped"].map((status) => `<button type="button" data-action="status" data-id="${item.id}" data-status="${status}" aria-pressed="${entry.status === status}">${labels[status]}</button>`).join("")}</div></fieldset>`
+            : `<button class="btn btn-primary btn-block" type="button" data-action="save" style="margin-top:1.5rem">${icon("plus")}加入清单</button>`;
+        }
+        return `
+          <header style="max-width:48rem">
+            <p class="eyebrow">判定结果</p>
+            <h1 class="page-title" style="font-size:1.75rem;line-height:1.4">${escapeHtml(input.pain)}</h1>
+            <p class="meta"><span>${icon("clock")}${labels[input.frequency]} · 每次 ${input.minutesPerTime} 分钟</span>${input.context ? `<span>${escapeHtml(input.context)}</span>` : ""}</p>
+          </header>
+          <p class="notice">${icon("info")}<span>当前是示例结果。这个文件不联网，按关键词匹配内置案例，结论仍由和线上相同的固定规则汇总。</span></p>
+          <div class="result-grid">
+            <aside class="card pad summary-card">
+              ${badge(item.verdict)}
+              <div class="score-row">
+                ${ring(score, item.verdict)}
+                <dl>
+                  <div><dt>预计节省</dt><dd>${formatSaved(current.saved)}</dd></div>
+                  <div><dt>评分来源</dt><dd>内置案例</dd></div>
+                </dl>
+              </div>
+              <p class="text-sm divider">${escapeHtml(draft.summary)}</p>
+              ${action}
+            </aside>
+            <div class="stack" style="min-width:0">
+              <section class="card pad">
+                <div class="section-head"><h2>六维评分</h2><p class="small muted">前四项越高越好，后两项越高越难自动化</p></div>
+                <dl class="dim-grid">${dims}</dl>
+              </section>
+              ${plan}
+              ${tools}
+            </div>
+          </div>`;
+      }
+
+      function libraryView() {
+        const active = state.library.filter((item) => item.status !== "dropped");
+        const saved = active.reduce((total, item) => total + item.saved, 0);
+        const built = state.library.filter((item) => item.status === "built").length;
+        const stat = (name, label, value) => `<div class="card stat"><span class="icon-box">${icon(name, 20)}</span><div><p class="small muted">${label}</p><b>${value}</b></div></div>`;
+        const head = `
+          <p class="eyebrow">自动化清单</p>
+          <h1 class="page-title">我的自动化清单</h1>
+          <p class="lede">只收录能被接走或部分接走的痛点，状态保存在这台浏览器里。</p>
+          <div class="stat-grid">
+            ${stat("list", "收录方案", `${state.library.length} 个`)}
+            ${stat("clock", "合计每月可节省", saved >= 60 ? `${Math.round((saved / 60) * 10) / 10} 小时` : `${saved} 分钟`)}
+            ${stat("check", "已经搭建", `${built} 个`)}
+          </div>`;
+        if (state.library.length === 0) {
+          return `${head}
+            <div class="empty">
+              <span class="circle">${icon("list", 20)}</span>
+              <p>还没有加入任何方案</p>
+              <p class="text-sm muted" style="margin-top:0.25rem">判定为可自动化或部分可自动化后，可以把方案加进来跟踪进度。</p>
+              <button class="btn btn-primary" type="button" data-action="goto" data-view="form" style="margin-top:1.5rem">去判断一个痛点</button>
+            </div>`;
+        }
+        const rows = state.library.map((item) => `
+          <li class="${item.status === "dropped" ? "dropped" : ""}">
+            <div style="min-width:0">
+              ${badge(item.verdict)}
+              <h3>${escapeHtml(item.pain)}</h3>
+              <span class="saved">${icon("clock", 14)}${formatSaved(item.saved)}</span>
+            </div>
+            <div class="seg three-col compact" style="margin-top:0;flex-shrink:0">
+              ${["pending", "built", "dropped"].map((status) => `<button type="button" data-action="status" data-id="${item.id}" data-status="${status}" aria-pressed="${item.status === status}">${labels[status]}</button>`).join("")}
+            </div>
+          </li>`).join("");
+        return `${head}<ul class="card lib-list">${rows}</ul>`;
+      }
+
+      function render() {
+        const screen = document.getElementById("screen");
+        const views = { home: homeView, form: formView, analyzing: analyzingView, result: resultView, library: libraryView };
+        screen.innerHTML = (views[state.view] ?? homeView)();
+        const navView = state.view === "analyzing" || state.view === "result" ? "form" : state.view;
+        document.querySelectorAll(".nav-link, nav.bottom button").forEach((button) => {
+          if (button.dataset.view === navView) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        document.querySelector("[data-action='autoplay']").textContent = state.playing ? "停止播放" : "自动播放演示";
+        document.getElementById("progress").style.width = state.playing ? `${(state.stepIndex / state.stepTotal) * 100}%` : "0";
+        document.getElementById("step-text").textContent = state.playing ? `${state.stepIndex}/${state.stepTotal} · ${state.stepName}` : "手动浏览";
+      }
+
+      function hydrateIcons() {
+        document.querySelectorAll("[data-icon]").forEach((node) => {
+          node.innerHTML = icon(node.dataset.icon, Number(node.dataset.size || 16));
+        });
+      }
+
+      document.body.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-action]");
+        if (!target) return;
+        const action = target.dataset.action;
+        if (action !== "autoplay" && action !== "status") stopAutoplay();
+        if (action === "autoplay") autoplay();
+        if (action === "goto") {
+          state.view = target.dataset.view;
+          state.error = "";
+          window.scrollTo(0, 0);
+        }
+        if (action === "prefill") {
+          applyCase(target.dataset.id);
+          state.view = "form";
+          state.error = "";
+          window.scrollTo(0, 0);
+        }
+        if (action === "pick") applyCase(target.dataset.id);
+        if (action === "frequency") state.frequency = target.dataset.value;
+        if (action === "submit") {
+          if (state.pain.trim().length < 4 || !Number.isInteger(Number(state.minutes))) {
+            state.error = "请写清痛点，并填写每次大概要花多少分钟。";
+          } else {
+            state.error = "";
+            const matched = matchCase(state.pain);
+            startAnalyzing(() => openResult(matched ? matched.id : "unmatched"));
+            return;
+          }
+        }
+        if (action === "save") addCurrentToLibrary();
+        if (action === "status") {
+          const entry = libraryEntry(target.dataset.id);
+          if (entry) entry.status = target.dataset.status;
+        }
+        render();
+      });
+
+      document.body.addEventListener("input", (event) => {
+        const field = event.target.dataset.field;
+        if (!field) return;
+        state[field] = event.target.value;
+        if (field === "pain") {
+          state.activeCase = null;
+          const count = document.getElementById("count");
+          if (count) count.textContent = `${state.pain.length} / 400`;
+          document.querySelectorAll(".case-btn").forEach((button) => button.setAttribute("aria-pressed", "false"));
+        }
+      });
+
+      hydrateIcons();
+      render();
+    </script>
+  </body>
+</html>
